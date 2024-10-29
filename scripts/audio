@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Get list of available sinks (audio outputs)
+sinks=$(pactl list short sinks | awk '{print $2}')
+
+# Display sinks with dmenu and capture the selection
+selected_sink=$(echo "$sinks" | dmenu -i -p "Select audio output:")
+
+# Check if a selection was made
+if [ -n "$selected_sink" ]; then
+    # Get the sink ID of the selected sink
+    sink_id=$(pactl list short sinks | grep "$selected_sink" | awk '{print $1}')
+    
+    # Set the selected sink as the default sink
+    pactl set-default-sink "$sink_id"
+    
+    # Move all currently playing audio streams to the new default sink
+    for stream in $(pactl list short sink-inputs | awk '{print $1}'); do
+        pactl move-sink-input "$stream" "$sink_id"
+    done
+    
+    notify-send "Audio output switched to: $selected_sink"
+else
+    notify-send "No audio output selected."
+fi
+
